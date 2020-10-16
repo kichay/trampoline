@@ -5,7 +5,7 @@ Simple linux initramfs
 - Make build directory
 - Put busybox binary to build/bin/busybox
 - Put linux modules to build/lib/modules/$(uname -a)/...
-- Create build/etc/modules-load.d configuration directory with files
+- Prepare build/etc/modules-load.d/... configurations
 - ./build.sh
 
 ### Build depenences:
