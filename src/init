@@ -1,0 +1,53 @@
+#!/bin/busybox sh
+
+# Install busybox
+/bin/busybox --install -s /bin
+export PATH=/bin
+
+# Pseudo filesystems
+mountpoint -q /dev || mount -t devtmpfs devtmpfs /dev
+mountpoint -q /proc || mount -t proc proc /proc
+
+# Kernel arguments
+for arg in \
+    root \
+    root_mount_timeout \
+    root_mount_tick \
+    root_init
+do
+    eval $(grep -o "\b$arg=[^ ]*" /proc/cmdline)
+done
+
+# Empty root exception
+if [[ -z $root ]]; then
+    echo "initrd: could not parse root argument"
+    echo "cmdline: $(cat /proc/cmdline)"
+    exit 1
+fi
+
+# Defaults
+[[ -z $root_mount_timeout ]] && root_mount_timeout=15
+[[ -z $root_mount_tick ]] && root_mount_tick=0.5
+[[ -z $root_init ]] && root_init='/bin/init'
+
+# Modprobe foreach
+find /etc/modules-load.d \
+    -maxdepth 1 \
+    -mindepth 1 \
+    -not -type d \
+    -exec awk '{
+        if(MODULE=gensub(/^([^#]*).*/,"\\1",""))
+            system("modprobe "MODULE);
+    }' {} \;
+
+# Mount loop
+root_mount_command="mount $root /newroot"
+for i in $(seq 0 $root_mount_tick $root_mount_timeout); do
+    eval $root_mount_command 1>/var/mount.log 2>&1 && exec run-init /newroot $root_init
+    sleep $root_mount_tick
+done
+
+# Mount error
+echo "initrd: $root_mount_command (loop)"
+echo "$(cat /var/mount.log) (last try)"
+exit 2
