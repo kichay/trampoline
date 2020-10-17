@@ -21,4 +21,4 @@ Simple linux initramfs
 - root_mount_timeout - fractional | N (optional, default 15)
 - root_mount_tick -  fractional | N (optional, default 0.5)
 - root_init - string (optional, default /bin/init)
-- ro - rw|'' (optional, default '')
+- ro - ro|'' (optional, default '')
