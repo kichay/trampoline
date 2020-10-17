@@ -1,10 +1,17 @@
 #!/bin/bash
 
-base=$(dirname $0)
-build=$base/build
-src=$base/src
+build=$(mktemp -d)
+bin=$(dirname $0)/bin
+src=$(dirname $0)/src
+etc=$(dirname $0)/etc
+lib=$(dirname $0)/lib
+boot=$(dirname $0)
 
-mkdir -p $build $build/{bin,dev,proc,newroot,var,etc/modules-load.d,lib/modules}
+mkdir -p $build $build/{dev,proc,newroot,var,lib/modules}
 cp $src/init $build/
-cp /bin/busybox $build/bin/
-(cd $build; find *) | cpio -H newc -R 0:0 -D $build -o | gzip > $base/initramfs.newc.gz
+cp -ar $bin $build/
+cp -ar $etc $build/
+cp -ar $lib $build/
+(cd $build; find *) | cpio -H newc -R 0:0 -D $build -o | gzip > $boot/initramfs.newc.gz
+
+rm -rf $build

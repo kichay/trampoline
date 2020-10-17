@@ -2,13 +2,12 @@
 Simple linux initramfs
 
 ### Build:
-- Make build, build/etc/modules-load.d, build/lib/modules directories
-- Put linux modules to build/lib/modules/$(uname -a)/...
-- Prepare build/etc/modules-load.d/... configurations
+- Put static linked busybox binary to bin/busybox
+- Prepare etc/modules config
+- Put linux modules to lib/modules/$(uname -a)/...
 - ./build.sh
 
 ### Build depenences:
-- busybox (static linked)
 - bash
 - cpio
 - gzip

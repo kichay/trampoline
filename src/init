@@ -35,14 +35,10 @@ fi
 [[ -z $root_init ]] && root_init='/bin/init'
 
 # Modprobe foreach
-find /etc/modules-load.d \
-    -maxdepth 1 \
-    -mindepth 1 \
-    -not -type d \
-    -exec awk '{
-        if(MODULE=gensub(/^([^#]*).*/,"\\1",""))
-            system("modprobe "MODULE);
-    }' {} \;
+awk '{
+    if(MODULE=gensub(/^([^#]*).*/,"\\1",""))
+        system("modprobe "MODULE);
+}' /etc/modules
 
 # Mount loop
 for i in $(seq 0 $root_mount_tick $root_mount_timeout); do
