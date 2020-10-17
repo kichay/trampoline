@@ -8,15 +8,19 @@ export PATH=/bin
 mountpoint -q /dev || mount -t devtmpfs devtmpfs /dev
 mountpoint -q /proc || mount -t proc proc /proc
 
-# Kernel arguments
+# Root arguments
 for arg in \
     root \
     root_mount_timeout \
     root_mount_tick \
     root_init
 do
-    eval $(grep -o "\b$arg=[^ ]*" /proc/cmdline)
+    eval $(grep -o -w "$arg=[^ ]*" /proc/cmdline)
 done
+
+# Mount command
+root_mount_command="mount $root /newroot"
+grep -q -w "ro" /proc/cmdline && root_mount_command="$root_mount_command -o ro"
 
 # Empty root exception
 if [[ -z $root ]]; then
@@ -41,7 +45,6 @@ find /etc/modules-load.d \
     }' {} \;
 
 # Mount loop
-root_mount_command="mount $root /newroot"
 for i in $(seq 0 $root_mount_tick $root_mount_timeout); do
     eval $root_mount_command 1>/var/mount.log 2>&1 && exec run-init /newroot $root_init
     sleep $root_mount_tick

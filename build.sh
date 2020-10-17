@@ -1,7 +1,10 @@
 #!/bin/bash
 
-[[ ! -d build ]] && echo Please read the manual before use: README.md && exit 1
+base=$(dirname $0)
+build=$base/build
+src=$base/src
 
-mkdir -p build/{dev,proc,newroot,var}
-cp src/init build/init
-(cd build; find *) | cpio -H newc -R 0:0 -D build -o | gzip > initramfs.newc.gz
+mkdir -p $build $build/{bin,dev,proc,newroot,var,etc/modules-load.d,lib/modules}
+cp $src/init $build/
+cp /bin/busybox $build/bin/
+(cd $build; find *) | cpio -H newc -R 0:0 -D $build -o | gzip > $base/initramfs.newc.gz

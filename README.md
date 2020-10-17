@@ -2,14 +2,13 @@
 Simple linux initramfs
 
 ### Build:
-- Make build directory
-- Put busybox binary to build/bin/busybox
+- Make build, build/etc/modules-load.d, build/lib/modules directories
 - Put linux modules to build/lib/modules/$(uname -a)/...
 - Prepare build/etc/modules-load.d/... configurations
 - ./build.sh
 
 ### Build depenences:
-- busybox
+- busybox (static linked)
 - bash
 - cpio
 - gzip
@@ -22,3 +21,4 @@ Simple linux initramfs
 - root_mount_timeout - fractional | N (optional, default 15)
 - root_mount_tick -  fractional | N (optional, default 0.5)
 - root_init - string (optional, default /bin/init)
+- ro - rw|'' (optional, default '')
