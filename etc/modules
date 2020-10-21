@@ -1,5 +1,6 @@
 # module [ param1=value1 ] [ param2=value2 ] ...
 ehci_pci
+btrfs
 usb_storage
 hid_generic
 usbhid

@@ -1,19 +1,15 @@
 # Trampoline
-Simple linux initramfs
+Simple linux initramfs generator
 
 ### Build:
-- Put static linked busybox binary to bin/busybox
-- Prepare etc/modules config
-- Put linux modules to lib/modules/$(uname -a)/...
-- ./build.sh
+- Prepare etc/modules
+- ./trampoline.gen
 
 ### Build depenences:
-- bash
-- cpio
-- gzip
+- busybox
 
 ### Kernel dependences:
-- CONFIG_DEVTMPFS_MOUNT=y (required)
+- CONFIG_DEVTMPFS=y (required)
 
 ### Cmdargs:
 - root - UUID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx | /dev/sdxy (required)

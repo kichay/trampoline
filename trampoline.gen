@@ -1,3 +1,53 @@
+#!/bin/sh
+
+# Paths
+build=$(mktemp -d)
+busybox=/bin/busybox
+modules=$(dirname $0)/etc/modules
+
+# Prepare init
+mkdir -p \
+    $build \
+    $build/bin \
+    $build/dev \
+    $build/proc \
+    $build/var \
+    $build/etc \
+    $build/newroot
+tail $0 -n 52 > $build/init
+chmod 755 $build/init
+cp -L $busybox $build/bin/busybox
+cp -L $modules $build/etc/modules
+
+# Prepare modules (TODO: fix stderr)
+(
+    awk -F "#" '{
+        if ($1 != "")
+            system("busybox modinfo " gensub("^([^ |	]*).*", "\\1", "g", $1) " -F depends");
+    }' $modules | awk '{
+        if ($1 != "") {
+            gsub(/,/, "\n");
+            system("busybox modinfo -F filename " $0);
+        }
+    }';
+    awk -F "#" '{
+        if ($1 != "")
+            system("busybox modinfo " gensub("^([^ |	]*).*", "\\1", "g", $1) " -F filename");
+    }' $modules
+) | sort -u | awk -v build=$build '{
+    system("mkdir -p " build $1);
+    system("rm -rf " build $1);
+    system("cp " $1 " " build $1);
+}'
+
+# Build
+(cd $build; find *) | cpio -H newc -R 0:0 -D $build -o > initramfs.newc
+
+# Clean
+rm -rf $build
+
+exit 0
+
 #!/bin/busybox sh
 
 # Install busybox
@@ -35,9 +85,9 @@ fi
 [[ -z $root_init ]] && root_init='/bin/init'
 
 # Modprobe foreach
-awk '{
-    if(MODULE=gensub(/^([^#]*).*/,"\\1",""))
-        system("modprobe "MODULE);
+awk -F "#" '{
+    if($1 != "")
+        system("modprobe "$1);
 }' /etc/modules
 
 # Mount loop
