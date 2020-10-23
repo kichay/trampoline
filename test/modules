@@ -1,0 +1,8 @@
+#ehci_pci
+fs-btrfs
+usb-storage
+hid_generic
+usbhid
+input_leds
+#ext4
+#crc32c

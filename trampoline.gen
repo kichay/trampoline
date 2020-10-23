@@ -1,12 +1,14 @@
-#!/bin/sh
+#!/bin/busybox sh
 
-# Paths
-build=$(mktemp -d)
-busybox=/bin/busybox
-modules=$(dirname $0)/etc/modules
+# Defaults
+busybox="/bin/busybox"
+build="$($busybox mktemp -d)"
+depmod="$($busybox mktemp)"
+modules="/lib/modules/$($busybox uname -r)"
+self="$($busybox basename $0)"
 
 # Prepare init
-mkdir -p \
+$busybox mkdir -p \
     $build \
     $build/bin \
     $build/dev \
@@ -14,39 +16,99 @@ mkdir -p \
     $build/var \
     $build/etc \
     $build/newroot
-tail $0 -n 52 > $build/init
-chmod 755 $build/init
-cp -L $busybox $build/bin/busybox
-cp -L $modules $build/etc/modules
+$busybox tail $0 -n 54 > $build/init
+$busybox chmod 755 $build/init
+$busybox cp -L $busybox $build/bin/busybox
 
-# Prepare modules (TODO: fix stderr)
+# Build depmod
+$busybox depmod -n \
+    > $depmod
+
+# Regex modules
+function regex_modules() {
+    $busybox echo "$1" \
+        | $busybox sed -E -e 's/(_|-)/(_|-)/g'
+}
+
+# Get module dependencies
+function get_module_dependencies() {
+    module=$(regex_modules "$1")
+    (
+        $busybox grep -E \
+            -e "^[^ ]*/$module\.ko " \
+            -e "^[^ ]*.ko( .* | )$module( |$)" \
+            -A 1 $depmod \
+        || $busybox echo "$self: get_module_dependencies() failed for $1" >&2
+    ) | $busybox awk -F " " '{
+        if (!match($1, /^.*\.ko$/) && ($1 != ""))
+            print $0;
+    }'
+}
+
+# Get module dependencies recursively
+function get_module_dependencies_full() {
+    collector="$1"
+    dependencies_all=""
+    while [ -n "$collector" ]; do
+        dependencies=""
+        for module in $collector; do
+            dependencies="$output$(get_module_dependencies $module) "
+        done
+        dependencies_all="$dependencies_all$dependencies"
+        collector="$dependencies"
+    done
+    $busybox echo "$dependencies_all"
+}
+
+# Get module filename
+function get_module_filename() {
+    module=$(regex_modules "$1")
+    $busybox grep -E \
+        -e "^[^ ]*/$1\.ko " \
+        -e "^[^ ]*.ko( .* | )$1( |$)" \
+        $depmod | awk -F " " '{
+            print $1;
+        }'
+}
+
+# Parse module line
+function parse_module_line() {
+    $busybox echo "$1" | $busybox sed -E \
+        -e 's/#.*$//g' \
+        -e 's/\s[^\s]*$//g' \
+        -e '/^\s*$/d'   
+}
+
+# Collect modules from stdin
+trap 'break' SIGPIPE
+collected_modules=""
+while read module_line; do
+    collected_modules="$collected_modules$(
+        get_module_dependencies_full $(parse_module_line $module_line)
+    )"
+done
+
+# Copy modules
+for module in $collected_modules; do
+    $busybox mkdir -p \
+        $build/$modules/$(busybox dirname $(get_module_filename $module))
+    $busybox cp \
+        $modules/$(get_module_filename $module) \
+        $build/lib/modules/$($busybox uname -r)/$(get_module_filename $module)
+done
+
+# Build initramfs
 (
-    awk -F "#" '{
-        if ($1 != "")
-            system("busybox modinfo " gensub("^([^ |	]*).*", "\\1", "g", $1) " -F depends");
-    }' $modules | awk '{
-        if ($1 != "") {
-            gsub(/,/, "\n");
-            system("busybox modinfo -F filename " $0);
-        }
-    }';
-    awk -F "#" '{
-        if ($1 != "")
-            system("busybox modinfo " gensub("^([^ |	]*).*", "\\1", "g", $1) " -F filename");
-    }' $modules
-) | sort -u | awk -v build=$build '{
-    system("mkdir -p " build $1);
-    system("rm -rf " build $1);
-    system("cp " $1 " " build $1);
-}'
-
-# Build
-(cd $build; find *) | cpio -H newc -R 0:0 -D $build -o > initramfs.newc
+    cd $build
+    $busybox find . | $busybox cpio -H newc -R 0:0 -o
+)
 
 # Clean
-rm -rf $build
+$busybox rm -rf $build $depmod
 
 exit 0
+
+################################################################################
 
 #!/bin/busybox sh
 
@@ -70,7 +132,8 @@ done
 
 # Mount command
 root_mount_command="mount $root /newroot"
-grep -q -w "ro" /proc/cmdline && root_mount_command="$root_mount_command -o ro"
+grep -q -w "ro" /proc/cmdline \
+    && root_mount_command="$root_mount_command -o ro"
 
 # Empty root exception
 if [[ -z $root ]]; then
@@ -80,9 +143,9 @@ if [[ -z $root ]]; then
 fi
 
 # Defaults
-[[ -z $root_mount_timeout ]] && root_mount_timeout=15
-[[ -z $root_mount_tick ]] && root_mount_tick=0.5
-[[ -z $root_init ]] && root_init='/bin/init'
+[[ -z "$root_mount_timeout" ]] && root_mount_timeout=15
+[[ -z "$root_mount_tick" ]] && root_mount_tick=0.5
+[[ -z "$root_init" ]] && root_init='/bin/init'
 
 # Modprobe foreach
 awk -F "#" '{
@@ -92,7 +155,8 @@ awk -F "#" '{
 
 # Mount loop
 for i in $(seq 0 $root_mount_tick $root_mount_timeout); do
-    eval $root_mount_command 1>/var/mount.log 2>&1 && exec run-init /newroot $root_init
+    eval $root_mount_command 1>/var/mount.log 2>&1 \
+        && exec run-init /newroot $root_init
     sleep $root_mount_tick
 done
 

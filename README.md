@@ -1,15 +1,12 @@
 # Trampoline
 Simple linux initramfs generator
 
-### Build:
-- Prepare etc/modules
-- ./trampoline.gen
+### Generate:
+- ./trampoline.gen < /etc/modules > /boot/initramfs.newc
 
-### Build depenences:
-- busybox
-
-### Kernel dependences:
-- CONFIG_DEVTMPFS=y (required)
+### Depenences:
+- /bin/busybox (static linked)
+- CONFIG_DEVTMPFS=y (kernel config)
 
 ### Cmdargs:
 - root - UUID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx | /dev/sdxy (required)
