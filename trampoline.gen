@@ -32,11 +32,11 @@ function regex_modules() {
 
 # Get module dependencies
 function get_module_dependencies() {
-    module=$(regex_modules "$1")
+    gbd_module=$(regex_modules "$1")
     (
         $busybox grep -E \
-            -e "^[^ ]*/$module\.ko " \
-            -e "^[^ ]*.ko( .* | )$module( |$)" \
+            -e "^[^ ]*/$gbd_module\.ko " \
+            -e "^[^ ]*.ko( .* | )$gbd_module( |$)" \
             -A 1 $depmod \
         || $busybox echo "$self: get_module_dependencies() failed for $1" >&2
     ) | $busybox awk -F " " '{
@@ -47,25 +47,28 @@ function get_module_dependencies() {
 
 # Get module dependencies recursively
 function get_module_dependencies_full() {
-    collector="$1"
-    dependencies_all=""
-    while [ -n "$collector" ]; do
-        dependencies=""
-        for module in $collector; do
-            dependencies="$output$(get_module_dependencies $module) "
+    gmdr_collector="$1"
+    gmdr_dependencies_all=""
+    while $busybox [[ -n "$gmdr_collector" ]]; do
+        gmdr_dependencies=""
+        for gmdr_module in $gmdr_collector; do
+            $busybox [[ -n "$(get_module_dependencies $gmdr_module)" ]] \
+                && gmdr_dependencies="$gmdr_dependencies$(
+                    get_module_dependencies $gmdr_module
+                ) "
         done
-        dependencies_all="$dependencies_all$dependencies"
-        collector="$dependencies"
+        gmdr_dependencies_all="$gmdr_dependencies_all$gmdr_dependencies"
+        gmdr_collector="$gmdr_dependencies"
     done
-    $busybox echo "$dependencies_all"
+    $busybox echo "$gmdr_dependencies_all"
 }
 
 # Get module filename
 function get_module_filename() {
-    module=$(regex_modules "$1")
+    gmf_module=$(regex_modules "$1")
     $busybox grep -E \
-        -e "^[^ ]*/$1\.ko " \
-        -e "^[^ ]*.ko( .* | )$1( |$)" \
+        -e "^[^ ]*/$gmf_module\.ko " \
+        -e "^[^ ]*.ko( .* | )$gmf_module( |$)" \
         $depmod | awk -F " " '{
             print $1;
         }'
@@ -79,14 +82,24 @@ function parse_module_line() {
         -e '/^\s*$/d'   
 }
 
-# Collect modules from stdin
+# Process stdin
 trap 'break' SIGPIPE
 collected_modules=""
 while read module_line; do
-    collected_modules="$collected_modules$(
-        get_module_dependencies_full $(parse_module_line $module_line)
-    )"
+    $busybox echo $module_line >> $build/etc/modules
+    $busybox [[ -n "$(parse_module_line $module_line)" ]] \
+        && collected_modules="$collected_modules$(parse_module_line $module_line) $(
+            get_module_dependencies_full $(parse_module_line $module_line)
+        )"
 done
+
+# Sort modules
+collected_modules=$(
+    $busybox echo $collected_modules \
+        | $busybox xargs -n 1 \
+            | $busybox sort -u \
+                | $busybox xargs $busybox echo
+)
 
 # Copy modules
 for module in $collected_modules; do
