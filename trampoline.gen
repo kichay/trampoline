@@ -32,11 +32,11 @@ function regex_modules() {
 
 # Get module dependencies
 function get_module_dependencies() {
-    gbd_module=$(regex_modules "$1")
+    gmd_module=$(regex_modules "$1")
     (
         $busybox grep -E \
-            -e "^[^ ]*/$gbd_module\.ko " \
-            -e "^[^ ]*.ko( .* | )$gbd_module( |$)" \
+            -e "^[^ ]*/$gmd_module\.ko " \
+            -e "^[^ ]*.ko( .* | )$gmd_module( |$)" \
             -A 1 $depmod \
         || $busybox echo "$self: get_module_dependencies() failed for $1" >&2
     ) | $busybox awk -F " " '{
