@@ -47,20 +47,20 @@ function get_module_dependencies() {
 
 # Get module dependencies recursively
 function get_module_dependencies_full() {
-    gmdr_collector="$1"
-    gmdr_dependencies_all=""
-    while $busybox [[ -n "$gmdr_collector" ]]; do
-        gmdr_dependencies=""
-        for gmdr_module in $gmdr_collector; do
-            $busybox [[ -n "$(get_module_dependencies $gmdr_module)" ]] \
-                && gmdr_dependencies="$gmdr_dependencies$(
-                    get_module_dependencies $gmdr_module
+    gmdf_collector="$1"
+    gmdf_dependencies_all=""
+    while $busybox [[ -n "$gmdf_collector" ]]; do
+        gmdf_dependencies=""
+        for gmdf_module in $gmdf_collector; do
+            $busybox [[ -n "$(get_module_dependencies $gmdf_module)" ]] \
+                && gmdf_dependencies="$gmdf_dependencies$(
+                    get_module_dependencies $gmdf_module
                 ) "
         done
-        gmdr_dependencies_all="$gmdr_dependencies_all$gmdr_dependencies"
-        gmdr_collector="$gmdr_dependencies"
+        gmdf_dependencies_all="$gmdf_dependencies_all$gmdf_dependencies"
+        gmdf_collector="$gmdf_dependencies"
     done
-    $busybox echo "$gmdr_dependencies_all"
+    $busybox echo "$gmdf_dependencies_all"
 }
 
 # Get module filename
