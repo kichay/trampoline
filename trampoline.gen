@@ -107,7 +107,7 @@ for module in $collected_modules; do
         $build/$modules/$(busybox dirname $(get_module_filename $module))
     $busybox cp \
         $modules/$(get_module_filename $module) \
-        $build/lib/modules/$($busybox uname -r)/$(get_module_filename $module)
+        $build/$modules/$(get_module_filename $module)
 done
 
 # Build initramfs
