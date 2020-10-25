@@ -13,7 +13,7 @@ $busybox mkdir -p \
     $build/bin \
     $build/dev \
     $build/proc \
-    $build/var \
+    $build/var/run \
     $build/etc \
     $build/newroot
 $busybox tail $0 -n 54 > $build/init
