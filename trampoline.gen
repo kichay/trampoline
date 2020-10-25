@@ -169,7 +169,7 @@ awk -F "#" '{
 # Mount loop
 for i in $(seq 0 $root_mount_tick $root_mount_timeout); do
     eval $root_mount_command 1>/var/mount.log 2>&1 \
-        && exec run-init /newroot $root_init
+        && exec switch_root /newroot $root_init
     sleep $root_mount_tick
 done
 
