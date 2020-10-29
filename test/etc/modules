@@ -1,6 +1,5 @@
 #ehci_pci
-usb-storage
-fs-btrfs
+usb_storage
 hid_generic
 usbhid
 input_leds
